@@ -71,12 +71,16 @@ class DioLink extends Link {
   /// Dio client instance.
   final dio.Dio client;
 
+  final dio.CancelToken cancelToken;
+
+
   DioLink(
     this.endpoint, {
     @required this.client,
     this.defaultHeaders = const {},
     this.serializer = const RequestSerializer(),
     this.parser = const ResponseParser(),
+    this.cancelToken,
   }) : assert(client != null);
 
   @override
@@ -89,6 +93,9 @@ class DioLink extends Link {
         "Accept": "*/*",
         ...defaultHeaders,
         ..._getHttpLinkHeaders(request),
+      },
+      extras: <String,dynamic>{
+        "request": request
       },
     );
 
@@ -129,16 +136,18 @@ class DioLink extends Link {
   Future<dio.Response<Map<String, dynamic>>> _excuteDioRequest({
     @required Map<String, dynamic> body,
     @required Map<String, String> headers,
+    @required Map<String, dynamic> extras,
   }) async {
     try {
       final res = await client.post<dynamic>(
         endpoint,
         data: body,
+        cancelToken: cancelToken,
         options: dio.Options(
-          responseType: dio.ResponseType.json,
-          contentType: "application/json",
-          headers: headers,
-        ),
+            responseType: dio.ResponseType.json,
+            contentType: "application/json",
+            headers: headers,
+            extra: extras),
       );
       if (res.data is Map<String, dynamic> == false) {
         throw DioLinkParserException(
